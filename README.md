@@ -41,16 +41,12 @@ Commands
   
 Methods
 ---
-#### Single Item Prediction
-* Initiate the car price prediction process for a single item. Follow the prompts to provide information about the car.
-#### Batch Prediction
-* Initiate the car prices prediction process for a batch of items. Upload a CSV file with car entities.
-#### Rating
-* View statistics, including the average rating and usage statistics.
-#### Information
-* Get information about the bot.
-#### Help
-* Display the help message.
+
+- `Single Item Prediction:` Initiate the car price prediction process for a single item. Follow the prompts to provide information about the car.
+- `Batch Prediction:` Initiate the car prices prediction process for a batch of items. Upload a CSV file with car entities.
+- `Rating:` View statistics, including the average rating and usage statistics.
+- `Information:` Get information about the bot.
+- `Help:` Display the help message.
 
 License
 ---
