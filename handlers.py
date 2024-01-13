@@ -9,20 +9,18 @@ from typing import Optional
 from pydantic import BaseModel
 
 from aiogram import Router, F, Bot
-from aiogram.filters import Command, StateFilter
-from aiogram.filters.callback_data import CallbackData
+from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import (Message, ReplyKeyboardMarkup,KeyboardButton, ReplyKeyboardRemove,
-                           InlineKeyboardMarkup, CallbackQuery, BufferedInputFile)
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, CallbackQuery, \
+    BufferedInputFile
 
 from preprocessing import CarPricePredictorPreprocessor
 
 models_folder = pathlib.Path('.').resolve() / 'models'
 preprocessor = CarPricePredictorPreprocessor(models_folder)
-
 
 
 class Item(BaseModel):
@@ -39,6 +37,7 @@ class Item(BaseModel):
     torque: Optional[str] = None
     seats: float
 
+
 class EntryCar(StatesGroup):
     name = State()
     year = State()
@@ -53,6 +52,7 @@ class EntryCar(StatesGroup):
     torque = State()
     seats = State()
     batch = State()
+
 
 def predict_price(item: Item) -> float:
     """
@@ -79,7 +79,6 @@ def make_row_keyboard(items: list[str]) -> ReplyKeyboardMarkup:
 
 
 router = Router()
-
 
 available_brands = list(sorted(['Maruti', 'Skoda', 'Hyundai', 'Toyota', 'Ford', 'Renault',
                                 'Mahindra', 'Honda', 'Chevrolet', 'Fiat', 'Datsun', 'Tata', 'Jeep',
@@ -142,7 +141,7 @@ async def info(message: Message, started_at: str):
 
 
 @router.message(F.text.lower().split()[0] == "help")
-async def help(message: Message):
+async def help_message(message: Message):
     await message.answer("🤖 **Car Price Prediction Bot Help**\n\n"
                          "This bot is designed to predict car prices based on various parameters. "
                          "Here are some commands you can use:\n\n"
@@ -189,46 +188,50 @@ async def rating(message: Message):
     await message.answer(stats_message, parse_mode=ParseMode.HTML)
 
 
-
-#entry point for single item prediction
+# entry point for single item prediction
 @router.message(F.text.lower()[:-2] == "single item prediction")
 async def single_item_prediction(message: Message, state: FSMContext):
-    await message.answer(text="Choose Brand:\n\n" + "\n".join([f"{i + 1}. {j}" for i, j in enumerate(available_brands)]),
-                         reply_markup=ReplyKeyboardRemove())
+    await message.answer(
+        text="Choose Brand:\n\n" + "\n".join([f"{i + 1}. {j}" for i, j in enumerate(available_brands)]),
+        reply_markup=ReplyKeyboardRemove())
     await state.set_state(EntryCar.name)
 
-#handle correct brand
-@router.message(EntryCar.name, F.text.in_([str(i+1) for i in range(len(available_brands))]))
+
+# handle correct brand
+@router.message(EntryCar.name, F.text.in_([str(i + 1) for i in range(len(available_brands))]))
 async def single_item_prediction_1(message: Message, state: FSMContext):
     index = int(message.text)
-    await state.update_data(name=available_brands[index-1])
-    await message.answer(text="Enter car production year in format %Y,\n"
-                              "e.g. 2019")
+    await state.update_data(name=available_brands[index - 1])
+    await message.answer(text="Enter car production year,\n"
+                              "for example: 2019")
     await state.set_state(EntryCar.year)
 
-#handle incorrect brand
+
+# handle incorrect brand
 @router.message(EntryCar.name)
-async def single_item_prediction_1(message: Message, state: FSMContext):
-    index = int(message.text)
+async def single_item_prediction_1(message: Message):
     await message.answer(text="You have entered incorrect brand number. Please try again.\n\n"
                               "Choose Brand:\n\n" + "\n".join([f"{i + 1}. {j}" for i, j in enumerate(available_brands)]))
 
-#handle correct year
+
+# handle correct year
 @router.message(EntryCar.year, F.text.regexp(r'^(19|20)\d{2}$'))
 async def single_item_prediction_2(message: Message, state: FSMContext):
     await state.update_data(year=message.text)
     await message.answer(text="Type total number of integer kilometres the car travelled in its life,\n"
-                              "eg. 10000")
+                              "for example: 10000")
     await state.set_state(EntryCar.km_driven)
 
-#handle incorrect year
+
+# handle incorrect year
 @router.message(EntryCar.year)
 async def single_item_prediction_2(message: Message, state: FSMContext):
     await state.update_data(year=message.text)
-    await message.answer(text="Entered year is incorrect. Please try again and enter year in format %Y\n"
-                              "eg. 2019")
+    await message.answer(text="Entered year is incorrect. Please try again and enter year in correct format.\n"
+                              "for example: 2019")
 
-#handle correct km driven
+
+# handle correct km driven
 @router.message(EntryCar.km_driven, F.text.regexp(r'^\d{1,6}$'))
 async def single_item_prediction_3(message: Message, state: FSMContext):
     await state.update_data(km_driven=message.text)
@@ -237,14 +240,15 @@ async def single_item_prediction_3(message: Message, state: FSMContext):
     await state.set_state(EntryCar.fuel)
 
 
-#handle incorrect km driven
+# handle incorrect km driven
 @router.message(EntryCar.km_driven)
 async def single_item_prediction_3(message: Message, state: FSMContext):
     await state.update_data(km_driven=message.text)
     await message.answer(text="Entered km driven is incorrect\n"
                               "Please try again and enter km driven in range from 0 to 999999:")
 
-#handle correct available_fuels
+
+# handle correct available_fuels
 @router.message(EntryCar.fuel, F.text.in_(available_fuels))
 async def single_item_prediction_4(message: Message, state: FSMContext):
     await state.update_data(fuel=message.text)
@@ -252,7 +256,8 @@ async def single_item_prediction_4(message: Message, state: FSMContext):
                          reply_markup=make_row_keyboard(available_seller_type))
     await state.set_state(EntryCar.seller_type)
 
-#handle correct available_seller_type
+
+# handle correct available_seller_type
 @router.message(EntryCar.seller_type, F.text.in_(available_seller_type))
 async def single_item_prediction_5(message: Message, state: FSMContext):
     await state.update_data(seller_type=message.text)
@@ -260,7 +265,8 @@ async def single_item_prediction_5(message: Message, state: FSMContext):
                          reply_markup=make_row_keyboard(available_transmission))
     await state.set_state(EntryCar.transmission)
 
-#handle correct available_transmission
+
+# handle correct available_transmission
 @router.message(EntryCar.transmission, F.text.in_(available_transmission))
 async def single_item_prediction_6(message: Message, state: FSMContext):
     await state.update_data(transmission=message.text)
@@ -268,62 +274,70 @@ async def single_item_prediction_6(message: Message, state: FSMContext):
                          reply_markup=make_row_keyboard(available_owner))
     await state.set_state(EntryCar.owner)
 
-#handle correct available_owner
+
+# handle correct available_owner
 @router.message(EntryCar.owner, F.text.in_(available_owner))
 async def single_item_prediction_8(message: Message, state: FSMContext):
     await state.update_data(owner=message.text)
     await message.answer(text="Enter mileage (kilometers covered by car in 1 litre of fuel,\n"
-                              "e.g. 7.9)",
+                              "for example: 7.9)",
                          reply_markup=ReplyKeyboardRemove())
     await state.set_state(EntryCar.mileage)
 
 
-#handle correct mileage
+# handle correct mileage
 @router.message(EntryCar.mileage, F.text.regexp('^\d{1,2}([,\.]\d{1,5})?$'))
 async def single_item_prediction_9(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
     await message.answer(text="Enter engine CC as integer")
     await state.set_state(EntryCar.engine)
 
-#handle incorrect mileage
+
+# handle incorrect mileage
 @router.message(EntryCar.mileage)
 async def single_item_prediction_9(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
     await message.answer(text="Entered mileage is incorrect.\n"
                               "Try again (enter kilometers covered by Car in 1 litre of fuel,\n"
-                              "e.g. 7.9)")
+                              "for example: 7.9)")
 
-#handle correct engine CC
+
+# handle correct engine CC
 @router.message(EntryCar.engine, F.text.regexp(r'^\d{1,6}$'))
 async def single_item_prediction_10(message: Message, state: FSMContext):
     await state.update_data(engine=message.text)
     await message.answer(text="Enter horsepower of an engine,\ne.g. 132.2")
     await state.set_state(EntryCar.max_power)
 
-#handle incorrect engine CC
+
+# handle incorrect engine CC
 @router.message(EntryCar.engine)
 async def single_item_prediction_10(message: Message, state: FSMContext):
     await state.update_data(engine=message.text)
     await message.answer(text="Entered engine CC is incorrect.\n"
                               "Retype engine CC")
 
-#handle correct engine max_power
+
+# handle correct engine max_power
 @router.message(EntryCar.max_power, F.text.regexp('^\d{1,3}([,\.]\d{1,5})?$'))
 async def single_item_prediction_11(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
-    await message.answer(text="Enter seats number, e.g. 5")
+    await message.answer(text="Enter seats number,\n"
+                              "for example: 5")
     await state.set_state(EntryCar.seats)
 
-#handle incorrect engine max_power
+
+# handle incorrect engine max_power
 @router.message(EntryCar.max_power)
 async def single_item_prediction_11(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
-    await message.answer(text="Entered engine max power is incorrect.\n"
-                              "Retype engine max power, e.g. 132.2")
+    await message.answer(text="Entered engine max power is incorrect. "
+                              "Retype engine max power,\n"
+                              "for example:  32.2")
 
 
-#handle correct seats number
-@router.message(EntryCar.seats, F.text.in_([str(i) for i in range (1,21)]))
+# handle correct seats number
+@router.message(EntryCar.seats, F.text.in_([str(i) for i in range(1, 21)]))
 async def final(message: Message, state: FSMContext):
     await state.update_data(seats=message.text)
     await message.answer(text="All data gathered. Please wait for the prediction... ⏳")
@@ -347,7 +361,7 @@ async def final(message: Message, state: FSMContext):
 
         builder = InlineKeyboardBuilder()
 
-        for i in range(1,6):
+        for i in range(1, 6):
             builder.add(InlineKeyboardButton(text=i * '⭐️',
                                              callback_data=str(i)))
         builder.adjust(3)
@@ -358,17 +372,17 @@ async def final(message: Message, state: FSMContext):
         await message.answer('Consider restart bot using /start command')
 
 
-@router.callback_query(F.data.in_([str(i) for i in range(1,6)]))
+@router.callback_query(F.data.in_([str(i) for i in range(1, 6)]))
 async def send_thanks(callback: CallbackQuery):
     try:
         user_id = int(callback.from_user.id)
-        rating = int(callback.data)
-        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        user_rating = int(callback.data)
+        user_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         db_path = pathlib.Path('.').resolve() / 'rating.db'
         db = await aiosqlite.connect(db_path)
 
-        cursor = await db.execute(f"INSERT INTO rating VALUES ({user_id}, {rating}, '{time}')")
+        cursor = await db.execute(f"INSERT INTO rating VALUES ({user_id}, {user_rating}, '{user_time}')")
 
         await db.commit()
         await cursor.close()
@@ -396,7 +410,8 @@ async def send_thanks(callback: CallbackQuery):
                               f"Your last review was {last_rating}",
                               show_alert=True)
 
-#handle incorrect seats number
+
+# handle incorrect seats number
 @router.message(EntryCar.seats)
 async def final(message: Message, state: FSMContext):
     await state.update_data(seats=message.text)
@@ -404,8 +419,7 @@ async def final(message: Message, state: FSMContext):
                               "Retype seats number in range from 1 to 20")
 
 
-
-#entry point for batch
+# entry point for batch
 @router.message(F.text.lower()[:-3] == "batch prediction")
 async def batch_prediction(message: Message, state: FSMContext):
     await message.answer(text="Please attach .csv file with car entities",
@@ -434,15 +448,9 @@ async def batch_prediction_1(message: Message, state: FSMContext, bot: Bot):
 
 @router.message(F.text)
 async def my_text_handler(message: Message):
-    await message.answer("Unkown command or message\n"
+    await message.answer("Unknown command or message\n"
                          "Available commands:\n"
                          "/start - show welcome message and menu and restart bot\n"
                          "/help - show help message and list of commands\n\n"
                          "You can control me simply using keys below"
                          )
-
-
-
-
-
-
