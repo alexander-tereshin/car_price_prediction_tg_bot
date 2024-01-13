@@ -17,6 +17,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, CallbackQuery, BufferedInputFile
 
 from preprocessing import CarPricePredictorPreprocessor
+from database import DB
 
 models_folder = pathlib.Path('.').resolve() / 'models'
 preprocessor = CarPricePredictorPreprocessor(models_folder)
@@ -56,10 +57,8 @@ class EntryCar(StatesGroup):
 def predict_price(item: Item) -> float:
     """
     Predict the price for a single item.
-
     Args:
         item (Item): The input item.
-
     Returns:
         float: The predicted price.
     """
@@ -69,9 +68,9 @@ def predict_price(item: Item) -> float:
 
 def make_row_keyboard(items: list[str]) -> ReplyKeyboardMarkup:
     """
-    Создаёт реплай-клавиатуру с кнопками в один ряд
-    :param items: список текстов для кнопок
-    :return: объект реплай-клавиатуры
+    Creates a replay keyboard with buttons in one row
+    :param items: list of texts for buttons
+    :return: replay keyboard object
     """
     row = [KeyboardButton(text=item) for item in items]
     return ReplyKeyboardMarkup(keyboard=[row], resize_keyboard=True)
@@ -164,19 +163,10 @@ async def rating(message: Message):
     """
     Display statistics including average rating and usage statistics.
     """
-    db_path = pathlib.Path('.').resolve() / 'rating.db'
-    db = await aiosqlite.connect(db_path)
-    cursor = await db.execute(f"SELECT avg(rating) FROM rating")
-    average_rating = (await cursor.fetchone())[0]
 
-    cursor = await db.execute(f"SELECT count (distinct ts ) FROM rating")
-    number_reviews = (await cursor.fetchone())[0]
-
-    cursor = await db.execute(f"SELECT max(ts) FROM rating")
-    max_ts = (await cursor.fetchone())[0]
-
-    await cursor.close()
-    await db.close()
+    average_rating = (await DB.execute(f"SELECT avg(rating) FROM rating", fetch='one'))[0]
+    number_reviews = (await DB.execute(f"SELECT count (distinct ts ) FROM rating", fetch='one'))[0]
+    max_ts = (await DB.execute(f"SELECT max(ts) FROM rating", fetch='one'))[0]
 
     stats_message = (
         f"📊 <b>Statistics</b>\n\n"
@@ -201,7 +191,7 @@ async def single_item_prediction(message: Message, state: FSMContext):
 async def single_item_prediction_1(message: Message, state: FSMContext):
     index = int(message.text)
     await state.update_data(name=available_brands[index - 1])
-    await message.answer(text="Enter car production year,\n"
+    await message.answer(text="Enter car production year, "
                               "for example: 2019")
     await state.set_state(EntryCar.year)
 
@@ -217,7 +207,7 @@ async def single_item_prediction_1(message: Message):
 @router.message(EntryCar.year, F.text.regexp(r'^(19|20)\d{2}$'))
 async def single_item_prediction_2(message: Message, state: FSMContext):
     await state.update_data(year=message.text)
-    await message.answer(text="Type total number of integer kilometres the car travelled in its life,\n"
+    await message.answer(text="Type total number of integer kilometres the car travelled in its life, "
                               "for example: 10000")
     await state.set_state(EntryCar.km_driven)
 
@@ -226,7 +216,7 @@ async def single_item_prediction_2(message: Message, state: FSMContext):
 @router.message(EntryCar.year)
 async def single_item_prediction_2(message: Message, state: FSMContext):
     await state.update_data(year=message.text)
-    await message.answer(text="Entered year is incorrect. Please try again and enter year in correct format.\n"
+    await message.answer(text="Entered year is incorrect. Please try again and enter year in correct format, "
                               "for example: 2019")
 
 
@@ -243,7 +233,7 @@ async def single_item_prediction_3(message: Message, state: FSMContext):
 @router.message(EntryCar.km_driven)
 async def single_item_prediction_3(message: Message, state: FSMContext):
     await state.update_data(km_driven=message.text)
-    await message.answer(text="Entered km driven is incorrect\n"
+    await message.answer(text="Entered km driven is incorrect.\n\n"
                               "Please try again and enter km driven in range from 0 to 999999:")
 
 
@@ -278,8 +268,8 @@ async def single_item_prediction_6(message: Message, state: FSMContext):
 @router.message(EntryCar.owner, F.text.in_(available_owner))
 async def single_item_prediction_8(message: Message, state: FSMContext):
     await state.update_data(owner=message.text)
-    await message.answer(text="Enter mileage (kilometers covered by car in 1 litre of fuel,\n"
-                              "for example: 7.9)",
+    await message.answer(text="Enter mileage (kilometers covered by car in 1 litre of fuel), "
+                              "for example: 7.9",
                          reply_markup=ReplyKeyboardRemove())
     await state.set_state(EntryCar.mileage)
 
@@ -288,7 +278,10 @@ async def single_item_prediction_8(message: Message, state: FSMContext):
 @router.message(EntryCar.mileage, F.text.regexp('^\d{1,2}([,\.]\d{1,5})?$'))
 async def single_item_prediction_9(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
-    await message.answer(text="Enter engine CC as integer")
+    await message.answer(text="Enter engine CC as integer "
+                              "(the size – or cubic capacity – of a car’s engine is measured in cubic centimetres (cc))"
+                              ", for example: 1598\n\n"
+                              "(1598cc engine is translated as a 1.6L engine)")
     await state.set_state(EntryCar.engine)
 
 
@@ -297,15 +290,16 @@ async def single_item_prediction_9(message: Message, state: FSMContext):
 async def single_item_prediction_9(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
     await message.answer(text="Entered mileage is incorrect.\n"
-                              "Try again (enter kilometers covered by Car in 1 litre of fuel,\n"
-                              "for example: 7.9)")
+                              "Try again (enter kilometers covered by Car in 1 litre of fuel), "
+                              "for example: 7.9")
 
 
 # handle correct engine CC
 @router.message(EntryCar.engine, F.text.regexp(r'^\d{1,6}$'))
 async def single_item_prediction_10(message: Message, state: FSMContext):
     await state.update_data(engine=message.text)
-    await message.answer(text="Enter horsepower of an engine,\ne.g. 132.2")
+    await message.answer(text="Enter horsepower of an engine, "
+                              "for example: 132.2")
     await state.set_state(EntryCar.max_power)
 
 
@@ -314,14 +308,17 @@ async def single_item_prediction_10(message: Message, state: FSMContext):
 async def single_item_prediction_10(message: Message, state: FSMContext):
     await state.update_data(engine=message.text)
     await message.answer(text="Entered engine CC is incorrect.\n"
-                              "Retype engine CC")
+                              "Retype engine CC "
+                              "(the size – or cubic capacity – of a car’s engine is measured in cubic centimetres (cc))"
+                              ", for example: 1598\n\n"
+                         )
 
 
 # handle correct engine max_power
 @router.message(EntryCar.max_power, F.text.regexp('^\d{1,3}([,\.]\d{1,5})?$'))
 async def single_item_prediction_11(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
-    await message.answer(text="Enter seats number,\n"
+    await message.answer(text="Enter seats number, "
                               "for example: 5")
     await state.set_state(EntryCar.seats)
 
@@ -331,7 +328,7 @@ async def single_item_prediction_11(message: Message, state: FSMContext):
 async def single_item_prediction_11(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
     await message.answer(text="Entered engine max power is incorrect. "
-                              "Retype engine max power,\n"
+                              "Retype engine max power, "
                               "for example:  32.2")
 
 
@@ -341,7 +338,7 @@ async def final(message: Message, state: FSMContext):
     await state.update_data(seats=message.text)
     await message.answer(text="All data gathered. Please wait for the prediction... ⏳")
 
-    time.sleep(1.5)
+    time.sleep(1)
 
     data = await state.get_data()
 
@@ -378,14 +375,7 @@ async def send_thanks(callback: CallbackQuery):
         user_rating = int(callback.data)
         user_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        db_path = pathlib.Path('.').resolve() / 'rating.db'
-        db = await aiosqlite.connect(db_path)
-
-        cursor = await db.execute(f"INSERT INTO rating VALUES ({user_id}, {user_rating}, '{user_time}')")
-
-        await db.commit()
-        await cursor.close()
-        await db.close()
+        await DB.execute(f"INSERT INTO rating VALUES ({user_id}, {user_rating}, '{user_time}')")
 
         await callback.answer(
             text="Your review is registered ✨\n"
@@ -393,18 +383,8 @@ async def send_thanks(callback: CallbackQuery):
             show_alert=True)
 
     except aiosqlite.Error as e:
-        print(e)
-        db_path = pathlib.Path('.').resolve() / 'rating.db'
-        db = await aiosqlite.connect(db_path)
-
-        cursor = await db.execute(f"SELECT rating FROM rating where client_id = {user_id}")
-        last_rating = '⭐️' * int((await cursor.fetchone())[0])
-
-        cursor = await db.execute(f"SELECT ts FROM rating where client_id = {user_id}")
-        review_ts = (await cursor.fetchone())[0]
-
-        await cursor.close()
-        await db.close()
+        last_rating = '⭐️' * int((await DB.execute(f"SELECT rating FROM rating where client_id = {user_id}", fetch='one'))[0])
+        review_ts = (await DB.execute(f"SELECT ts FROM rating where client_id = {user_id}", fetch='one'))[0]
         await callback.answer(f"You have already rated this Bot at {review_ts}\n\n"
                               f"Your last review was {last_rating}",
                               show_alert=True)

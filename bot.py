@@ -11,11 +11,12 @@ from config_reader import config
 from database import init_db
 
 
+
 logging.basicConfig(level=logging.DEBUG)
 
 
 async def main():
-    init_db()
+    await init_db()
     bot = Bot(token=config.bot_token.get_secret_value())
     dp = Dispatcher(storage=MemoryStorage())
 
