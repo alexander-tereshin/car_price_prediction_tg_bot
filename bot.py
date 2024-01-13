@@ -11,7 +11,6 @@ from config_reader import config
 from database import init_db
 
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 

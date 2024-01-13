@@ -4,7 +4,7 @@ from typing import Tuple, Any, Optional
 
 import aiosqlite
 
-db_path = pathlib.Path('.').resolve() / 'rating.db'
+db_path = pathlib.Path(".").resolve() / "rating.db"
 
 
 class Database:
@@ -32,7 +32,9 @@ class Database:
 
         return None
 
-    async def execute(self, query: str, values: Tuple = (), *, fetch: str = None) -> Optional[Any]:
+    async def execute(
+        self, query: str, values: Tuple = (), *, fetch: str = None
+    ) -> Optional[Any]:
         cursor = await self.conn.cursor()
 
         await cursor.execute(query, values)
@@ -52,8 +54,9 @@ async def init_db():
         return
     connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
-    cursor.execute("CREATE TABLE rating(client_id INTEGER primary key unique , rating INTEGER, ts DATETIME)")
+    cursor.execute(
+        "CREATE TABLE rating(client_id INTEGER primary key unique , rating INTEGER, ts DATETIME)"
+    )
     connection.commit()
     cursor.close()
     connection.close()
-
