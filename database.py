@@ -50,10 +50,13 @@ DB = Database()
 
 async def init_db():
     await DB.connect()
-    if db_path.exists():
-        return
     connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
+    cursor.execute(
+        "select name from sqlite_schema where type='table' and name='rating'"
+    )
+    if cursor.fetchone():
+        return
     cursor.execute(
         "CREATE TABLE rating(client_id INTEGER primary key unique , rating INTEGER, ts DATETIME)"
     )
