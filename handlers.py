@@ -30,7 +30,7 @@ from aiogram.types import (
 from preprocessing import CarPricePredictorPreprocessor
 from database import DB
 
-models_folder = pathlib.Path(".").resolve() / "models"
+models_folder = pathlib.Path(__file__).resolve().parent / "models"
 preprocessor = CarPricePredictorPreprocessor(models_folder)
 
 

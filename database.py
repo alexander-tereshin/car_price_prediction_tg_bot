@@ -4,7 +4,7 @@ from typing import Tuple, Any, Optional
 
 import aiosqlite
 
-db_path = pathlib.Path(".").resolve() / "rating.db"
+db_path = pathlib.Path(__file__).resolve().parent / "rating.db"
 
 
 class Database:
