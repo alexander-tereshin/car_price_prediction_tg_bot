@@ -19,7 +19,6 @@ from aiogram.types import (Message, ReplyKeyboardMarkup,KeyboardButton, ReplyKey
                            InlineKeyboardMarkup, CallbackQuery, BufferedInputFile)
 
 from preprocessing import CarPricePredictorPreprocessor
-from db import get_connection
 
 models_folder = pathlib.Path('.').resolve() / 'models'
 preprocessor = CarPricePredictorPreprocessor(models_folder)
