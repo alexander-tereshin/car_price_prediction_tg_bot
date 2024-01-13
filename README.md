@@ -13,7 +13,7 @@ Installation
 ---
 1. Clone the repository:
 ```bash
-$ git clone https://github.com/your-username/carprice-telegram-bot.git
+$ git clone git@github.com:alexander-tereshin/car_price_prediction_tg_bot.git
 ```
 2. Install virtual enviroment:
 ```bash
