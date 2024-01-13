@@ -189,7 +189,7 @@ async def info(message: Message, started_at: str):
         "for the Applied Python course in Higher School of Economics\n\n"
         f"🚀 **Bot started at:** {started_at}\n\n"
         "For detailed instructions and to access the source code, check the [GitHub repository]"
-        "(https://github.com/alexander-tereshin).\n\n"
+        "(https://github.com/alexander-tereshin/car_price_prediction_tg_bot).\n\n"
         "If you have any questions or feedback, feel free to contact the developer @tealandr",
         parse_mode=ParseMode.MARKDOWN,
     )
