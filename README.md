@@ -28,6 +28,10 @@ $ source .venv/bin/activate
 ```bash
 $ pip install -r requirements.txt
 ```
+5. Create .env and paste your token for bot:
+```bash
+$ touch .env
+```  
 Usage
 ---
 Run the bot using the following command:
