@@ -17,6 +17,7 @@ $ git clone https://github.com/alexander-tereshin/car_price_prediction_tg_bot.gi
 ```
 2. Install virtual enviroment:
 ```bash
+$ cd car_price_prediction_tg_bot/
 $ python -m venv ./.venv
 ```
 3. Activate virtual enviroment:
