@@ -222,7 +222,6 @@ async def rating(message: Message):
     """
     Display statistics including average rating and usage statistics.
     """
-
     average_rating = (await DB.execute(f"SELECT avg(rating) FROM rating", fetch="one"))[
         0
     ]
@@ -360,7 +359,7 @@ async def single_item_prediction_8(message: Message, state: FSMContext):
 
 
 # handle correct mileage
-@router.message(EntryCar.mileage, F.text.regexp("^\d{1,2}([,\.]\d{1,5})?$"))
+@router.message(EntryCar.mileage, F.text.regexp(r"^\d{1,2}([,\.]\d{1,5})?$"))
 async def single_item_prediction_9(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
     await message.answer(
@@ -404,7 +403,7 @@ async def single_item_prediction_10(message: Message, state: FSMContext):
 
 
 # handle correct engine max_power
-@router.message(EntryCar.max_power, F.text.regexp("^\d{1,3}([,\.]\d{1,5})?$"))
+@router.message(EntryCar.max_power, F.text.regexp(r"^\d{1,3}([,\.]\d{1,5})?$"))
 async def single_item_prediction_11(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
     await message.answer(text="Enter seats number, " "for example: 5")
