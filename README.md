@@ -15,20 +15,12 @@ Installation
 ```bash
 $ git clone https://github.com/alexander-tereshin/car_price_prediction_tg_bot.git
 ```
-2. Install virtual enviroment:
+2. Install dependencies using poetry:
 ```bash
 $ cd car_price_prediction_tg_bot/
-$ python3 -m venv ./.venv
+$ poetry install
 ```
-3. Activate virtual enviroment:
-```bash
-$ source .venv/bin/activate
-```
-4. Install the required dependencies:
-```bash
-$ pip install -r requirements.txt
-```
-5. Create .env and paste your token for bot:
+3. Create .env and paste your token for the bot:
 ```bash
 $ touch .env
 ```  
