@@ -1,37 +1,33 @@
-import pytest
-import sys
 import os
-
-from unittest import TestCase
-from unittest.mock import AsyncMock, MagicMock, patch
-from aiogram_tests import MockedBot
-from aiogram_tests.handler import MessageHandler
-from aiogram_tests.types.dataset import MESSAGE
-from aiogram.enums import ParseMode
-from aiogram.filters import Command
-from aiogram.types import (
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-)
+import sys
 from io import BytesIO
+
+import aiosqlite
+import pytest
+
+from unittest.mock import AsyncMock, MagicMock, patch
+from aiogram.filters import Command
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.enums import ParseMode
+from aiogram_tests import MockedBot
+from aiogram_tests.handler import MessageHandler, CallbackQueryHandler
+from aiogram_tests.types.dataset import MESSAGE, CALLBACK_QUERY
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import handlers
 
 
-class TestMakeRowKeyboard(TestCase):
-    def test_make_row_keyboard(self):
-        items = ["Button 1", "Button 2", "Button 3"]
-        expected_keyboard = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text=item) for item in items]],
-            resize_keyboard=True,
-        )
-        actual_keyboard = handlers.make_row_keyboard(items)
-        self.assertEqual(actual_keyboard.keyboard, expected_keyboard.keyboard)
-        self.assertEqual(
-            actual_keyboard.resize_keyboard, expected_keyboard.resize_keyboard
-        )
+def test_make_row_keyboard():
+    items = ["Button 1", "Button 2", "Button 3"]
+    expected_keyboard = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=item) for item in items]],
+        resize_keyboard=True,
+    )
+    actual_keyboard = handlers.make_row_keyboard(items)
+    assert actual_keyboard.keyboard == expected_keyboard.keyboard
+    assert actual_keyboard.resize_keyboard == expected_keyboard.resize_keyboard
 
 
 @pytest.mark.asyncio
@@ -392,53 +388,45 @@ async def test_batch_prediction_1():
     bot.download.assert_called_once_with(message.document)
 
     call_args = message.reply_document.call_args
-    input_file_object = call_args[0][0]
+    output_file_object = call_args[0][0]
 
-    assert input_file_object.filename == "result.csv"
+    assert output_file_object.filename == "result.csv"
 
 
-class TestBotRating(TestCase):
-    def setUp(self):
-        self.callback_query = MagicMock()
+class MockDB(AsyncMock):
+    ids = []
 
-    @patch("database.DB")
-    async def test_send_thanks(self, mock_db):
-        self.callback_query.from_user.id = 123
-        self.callback_query.data = "5"
+    async def execute(self, query, value=(), *, fetch=None):
+        if "INSERT" in query:
+            id_ = query.split("(")[1].split(",")[0]
+            if id_ in self.ids:
+                raise aiosqlite.Error("")
+            self.ids.append(id_)
+        else:
+            return ["1"]
 
-        mock_db.execute.side_effect = [
-            MagicMock(return_value=None),
-            MagicMock(return_value=(("5",),)),
-            MagicMock(return_value=("2024-02-20 10:00:00",)),
-        ]
 
-        await handlers.send_thanks(self.callback_query)
+@pytest.mark.asyncio
+async def test_send_thanks():
+    mock_db = MockDB()
 
-        mock_db.execute.assert_called_with(
-            "INSERT INTO rating VALUES (123, 5, ?)",
-            mock_db.execute(),
+    with patch("handlers.DB", mock_db):
+        requester = MockedBot(CallbackQueryHandler(handlers.send_thanks))
+        callback_query = CALLBACK_QUERY.as_object(data="3")
+        calls = await requester.query(callback_query)
+        assert (
+            calls.answer_callback_query.fetchone().text
+            == "Your review is registered ✨\n"
+            "Thanks for using this Bot!"
         )
-        self.callback_query.answer.assert_called_with(
-            text="Your review is registered ✨\nThanks for using this Bot!",
-            show_alert=True,
-        )
 
-    @patch("database.DB")
-    async def test_send_thanks_already_rated(self, mock_db):
-        self.callback_query.from_user.id = 123
-        self.callback_query.data = "5"
-
-        mock_db.execute.side_effect = [
-            MagicMock(return_value=None),
-            MagicMock(return_value=(("5",),)),
-            MagicMock(return_value=("2024-02-20 10:00:00",)),
-        ]
-
-        await handlers.send_thanks(self.callback_query)
-
-        self.callback_query.answer.assert_called_with(
-            text="You have already rated this Bot at 2024-02-20 10:00:00\n\nYour last review was ⭐️⭐️⭐️⭐️⭐️",
-            show_alert=True,
+    with patch("handlers.DB", mock_db):
+        requester = MockedBot(CallbackQueryHandler(handlers.send_thanks))
+        callback_query = CALLBACK_QUERY.as_object(data="3")
+        calls = await requester.query(callback_query)
+        assert (
+            "You have already rated this Bot"
+            in calls.answer_callback_query.fetchone().text
         )
 
 
