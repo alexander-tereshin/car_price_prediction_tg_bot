@@ -65,7 +65,7 @@ class EntryCar(StatesGroup):
     batch = State()
 
 
-def predict_price(item: Item) -> float:
+def predict_price(item: Item) -> float:  # pragma: no cover
     """
     Predict the price for a single item.
     Args:
@@ -73,7 +73,7 @@ def predict_price(item: Item) -> float:
     Returns:
         float: The predicted price.
     """
-    processed_df = preprocessor.preprocess_data(pd.DataFrame([item.dict()]))
+    processed_df = preprocessor.preprocess_data(pd.DataFrame([item.model_dump()]))
     return preprocessor.ridge_regressor.predict(processed_df)[0]
 
 
@@ -222,7 +222,6 @@ async def rating(message: Message):
     """
     Display statistics including average rating and usage statistics.
     """
-
     average_rating = (await DB.execute(f"SELECT avg(rating) FROM rating", fetch="one"))[
         0
     ]
@@ -255,7 +254,7 @@ async def single_item_prediction(message: Message, state: FSMContext):
 @router.message(
     EntryCar.name, F.text.in_([str(i + 1) for i in range(len(available_brands))])
 )
-async def single_item_prediction_1(message: Message, state: FSMContext):
+async def single_item_prediction_1_correct(message: Message, state: FSMContext):
     index = int(message.text)
     await state.update_data(name=available_brands[index - 1])
     await message.answer(text="Enter car production year, " "for example: 2019")
@@ -264,7 +263,7 @@ async def single_item_prediction_1(message: Message, state: FSMContext):
 
 # handle incorrect brand
 @router.message(EntryCar.name)
-async def single_item_prediction_1(message: Message):
+async def single_item_prediction_1_incorrect(message: Message):
     await message.answer(
         text="You have entered incorrect brand number. Please try again.\n\n"
         "Choose Brand:\n\n"
@@ -274,7 +273,7 @@ async def single_item_prediction_1(message: Message):
 
 # handle correct year
 @router.message(EntryCar.year, F.text.regexp(r"^(19|20)\d{2}$"))
-async def single_item_prediction_2(message: Message, state: FSMContext):
+async def single_item_prediction_2_correct(message: Message, state: FSMContext):
     await state.update_data(year=message.text)
     await message.answer(
         text="Type total number of integer kilometres the car travelled in its life, "
@@ -285,7 +284,7 @@ async def single_item_prediction_2(message: Message, state: FSMContext):
 
 # handle incorrect year
 @router.message(EntryCar.year)
-async def single_item_prediction_2(message: Message, state: FSMContext):
+async def single_item_prediction_2_incorrect(message: Message, state: FSMContext):
     await state.update_data(year=message.text)
     await message.answer(
         text="Entered year is incorrect. Please try again and enter year in correct format, "
@@ -295,7 +294,7 @@ async def single_item_prediction_2(message: Message, state: FSMContext):
 
 # handle correct km driven
 @router.message(EntryCar.km_driven, F.text.regexp(r"^\d{1,6}$"))
-async def single_item_prediction_3(message: Message, state: FSMContext):
+async def single_item_prediction_3_correct(message: Message, state: FSMContext):
     await state.update_data(km_driven=message.text)
     await message.answer(
         text="Choose fuel type from options below:",
@@ -306,7 +305,7 @@ async def single_item_prediction_3(message: Message, state: FSMContext):
 
 # handle incorrect km driven
 @router.message(EntryCar.km_driven)
-async def single_item_prediction_3(message: Message, state: FSMContext):
+async def single_item_prediction_3_incorrect(message: Message, state: FSMContext):
     await state.update_data(km_driven=message.text)
     await message.answer(
         text="Entered km driven is incorrect.\n\n"
@@ -316,7 +315,7 @@ async def single_item_prediction_3(message: Message, state: FSMContext):
 
 # handle correct available_fuels
 @router.message(EntryCar.fuel, F.text.in_(available_fuels))
-async def single_item_prediction_4(message: Message, state: FSMContext):
+async def single_item_prediction_4_correct(message: Message, state: FSMContext):
     await state.update_data(fuel=message.text)
     await message.answer(
         text="Choose seller type from the options below:",
@@ -327,7 +326,7 @@ async def single_item_prediction_4(message: Message, state: FSMContext):
 
 # handle correct available_seller_type
 @router.message(EntryCar.seller_type, F.text.in_(available_seller_type))
-async def single_item_prediction_5(message: Message, state: FSMContext):
+async def single_item_prediction_5_correct(message: Message, state: FSMContext):
     await state.update_data(seller_type=message.text)
     await message.answer(
         text="Choose transmission type from the options below:",
@@ -338,7 +337,7 @@ async def single_item_prediction_5(message: Message, state: FSMContext):
 
 # handle correct available_transmission
 @router.message(EntryCar.transmission, F.text.in_(available_transmission))
-async def single_item_prediction_6(message: Message, state: FSMContext):
+async def single_item_prediction_6_correct(message: Message, state: FSMContext):
     await state.update_data(transmission=message.text)
     await message.answer(
         text="Choose what ownership counts from the options below:",
@@ -349,7 +348,7 @@ async def single_item_prediction_6(message: Message, state: FSMContext):
 
 # handle correct available_owner
 @router.message(EntryCar.owner, F.text.in_(available_owner))
-async def single_item_prediction_8(message: Message, state: FSMContext):
+async def single_item_prediction_8_correct(message: Message, state: FSMContext):
     await state.update_data(owner=message.text)
     await message.answer(
         text="Enter mileage (kilometers covered by car in 1 litre of fuel), "
@@ -360,8 +359,8 @@ async def single_item_prediction_8(message: Message, state: FSMContext):
 
 
 # handle correct mileage
-@router.message(EntryCar.mileage, F.text.regexp("^\d{1,2}([,\.]\d{1,5})?$"))
-async def single_item_prediction_9(message: Message, state: FSMContext):
+@router.message(EntryCar.mileage, F.text.regexp(r"^\d{1,2}([,\.]\d{1,5})?$"))
+async def single_item_prediction_9_correct(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
     await message.answer(
         text="Enter engine CC as integer "
@@ -374,7 +373,7 @@ async def single_item_prediction_9(message: Message, state: FSMContext):
 
 # handle incorrect mileage
 @router.message(EntryCar.mileage)
-async def single_item_prediction_9(message: Message, state: FSMContext):
+async def single_item_prediction_9_incorrect(message: Message, state: FSMContext):
     await state.update_data(mileage=message.text)
     await message.answer(
         text="Entered mileage is incorrect.\n"
@@ -385,7 +384,7 @@ async def single_item_prediction_9(message: Message, state: FSMContext):
 
 # handle correct engine CC
 @router.message(EntryCar.engine, F.text.regexp(r"^\d{1,6}$"))
-async def single_item_prediction_10(message: Message, state: FSMContext):
+async def single_item_prediction_10_correct(message: Message, state: FSMContext):
     await state.update_data(engine=message.text)
     await message.answer(text="Enter horsepower of an engine, " "for example: 132.2")
     await state.set_state(EntryCar.max_power)
@@ -393,7 +392,7 @@ async def single_item_prediction_10(message: Message, state: FSMContext):
 
 # handle incorrect engine CC
 @router.message(EntryCar.engine)
-async def single_item_prediction_10(message: Message, state: FSMContext):
+async def single_item_prediction_10_incorrect(message: Message, state: FSMContext):
     await state.update_data(engine=message.text)
     await message.answer(
         text="Entered engine CC is incorrect.\n"
@@ -404,8 +403,8 @@ async def single_item_prediction_10(message: Message, state: FSMContext):
 
 
 # handle correct engine max_power
-@router.message(EntryCar.max_power, F.text.regexp("^\d{1,3}([,\.]\d{1,5})?$"))
-async def single_item_prediction_11(message: Message, state: FSMContext):
+@router.message(EntryCar.max_power, F.text.regexp(r"^\d{1,3}([,\.]\d{1,5})?$"))
+async def single_item_prediction_11_correct(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
     await message.answer(text="Enter seats number, " "for example: 5")
     await state.set_state(EntryCar.seats)
@@ -413,7 +412,7 @@ async def single_item_prediction_11(message: Message, state: FSMContext):
 
 # handle incorrect engine max_power
 @router.message(EntryCar.max_power)
-async def single_item_prediction_11(message: Message, state: FSMContext):
+async def single_item_prediction_11_incorrect(message: Message, state: FSMContext):
     await state.update_data(max_power=message.text)
     await message.answer(
         text="Entered engine max power is incorrect. "
@@ -424,7 +423,7 @@ async def single_item_prediction_11(message: Message, state: FSMContext):
 
 # handle correct seats number
 @router.message(EntryCar.seats, F.text.in_([str(i) for i in range(1, 21)]))
-async def final(message: Message, state: FSMContext):
+async def final_correct(message: Message, state: FSMContext):
     await state.update_data(seats=message.text)
     await message.answer(text="All data gathered. Please wait for the prediction... ⏳")
 
@@ -500,7 +499,7 @@ async def send_thanks(callback: CallbackQuery):
 
 # handle incorrect seats number
 @router.message(EntryCar.seats)
-async def final(message: Message, state: FSMContext):
+async def final_incorrect(message: Message, state: FSMContext):
     await state.update_data(seats=message.text)
     await message.answer(
         text="Entered seats number incorrect."

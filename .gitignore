@@ -166,3 +166,4 @@ cython_debug/
 
 
 rating.db
+.vscode
