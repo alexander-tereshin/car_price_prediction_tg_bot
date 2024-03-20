@@ -75,7 +75,6 @@ async def test_fetch_all():
 
     data = await DB.execute(query, fetch="all")
 
-
     cursor_mock.execute.assert_called_once_with(query, ())
     cursor_mock.fetchall.assert_called_once()
     assert data == result
